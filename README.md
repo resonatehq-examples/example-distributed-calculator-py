@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./assets/banner.png" alt="Distributed Calculator — Resonate example" />
+</p>
+
 # Resonator
 
 Resonator is a distributed calculator that can calculate basic
