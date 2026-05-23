@@ -1,21 +1,25 @@
 from __future__ import annotations
 
 import os
-import time
 import uuid
 
 from collections.abc import Generator
+from threading import Event
 from typing import Any
 
 from resonate import Resonate, Context
-from resonate.task_sources import Poller
 
 from resonator import parser
 
 
 grp = os.getenv("GRP")
 pid = os.getenv("PID")
-resonate = Resonate(pid=pid, task_source=Poller(group=grp))
+resonate_kwargs = {}
+if grp:
+    resonate_kwargs["group"] = grp
+if pid:
+    resonate_kwargs["pid"] = pid
+resonate = Resonate.remote(**resonate_kwargs)
 
 @resonate.register(name="+")
 def add(ctx: Context, x: int, y: int) -> int:
@@ -61,8 +65,18 @@ def clc(ctx: Context, expr: parser.Expr) -> Generator[Any, Any, int]:
             return x
 
 def run():
-    if not grp:
-        print("""\
+    resonate.start()
+
+    # Worker loop: wait for tasks until interrupted.
+    if grp:
+        print(f"worker started: group={grp} pid={pid}", flush=True)
+        try:
+            Event().wait()
+        except KeyboardInterrupt:
+            resonate.stop()
+        return
+
+    print("""\
 RRRR   EEEEE  SSSSS   OOO   N   N  AAAAA  TTTTT  OOO   RRRR
 R   R  E      S      O   O  NN  N  A   A    T   O   O  R   R
 RRRR   EEEE   SSSSS  O   O  N N N  AAAAA    T   O   O  RRRR
@@ -85,27 +99,19 @@ Give it a try by typing an expression such as:
 
     while True:
         try:
-            # worker loop
-            if grp:
-                time.sleep(60)
-                continue
-
-            # main loop
             if expr := input("❯ "):
-                # calculate the expression
-                h = clc.run(str(uuid.uuid4()), parser.parse(expr))
-
-                # print the result
-                print(f"""
-{expr}
-= {h.result()}
-""")
+                # `clc.run(...)` blocks until the workflow completes and
+                # returns the result directly.
+                result = clc.run(str(uuid.uuid4()), parser.parse(expr))
+                print(f"\n{expr}\n= {result}\n")
         except EOFError:
             break
         except KeyboardInterrupt:
             break
         except Exception as e:
             print(f"Something went wrong: {e}")
+
+    resonate.stop()
 
 
 if __name__ == "__main__":
