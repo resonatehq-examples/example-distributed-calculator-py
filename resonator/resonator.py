@@ -48,8 +48,8 @@ def clc(ctx: Context, expr: parser.Expr) -> Generator[Any, Any, int]:
             #
             # The expressions are sent to the task queue as invocations
             # which return a handle so we can wait for the result later.
-            px = yield ctx.rfi(clc, lhs).options(send_to="poll://exp/lhs")
-            py = yield ctx.rfi(clc, rhs).options(send_to="poll://exp/rhs")
+            px = yield ctx.rfi(clc, lhs).options(target="poll://exp/lhs")
+            py = yield ctx.rfi(clc, rhs).options(target="poll://exp/rhs")
 
             # Wait for results from the lhs and rhs tasks.
             vx = yield px
@@ -59,7 +59,7 @@ def clc(ctx: Context, expr: parser.Expr) -> Generator[Any, Any, int]:
             #
             # The operation is sent to the task queue as a call which returns
             # the result directly.
-            return (yield ctx.rfc(op, vx, vy).options(send_to="poll://ops"))
+            return (yield ctx.rfc(op, vx, vy).options(target="poll://ops"))
 
         case x:
             return x
