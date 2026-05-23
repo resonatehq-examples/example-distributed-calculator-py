@@ -12,3 +12,6 @@ dependencies = [
 
 [project.scripts]
 resonator = "resonator.resonator:run"
+
+[tool.setuptools.packages.find]
+include = ["resonator*"]
